@@ -24,7 +24,7 @@ headers = {
 def get_url(url: str) -> str:
     """extract special url"""
     try:
-        r = requests.get(url, allow_redirects=False, timeout=15)
+        r = requests.get(url, allow_redirects=False)
         if r.status_code == 302 and 'Location' in r.headers.keys():
             return r.headers['Location']
     except Exception:
@@ -32,7 +32,7 @@ def get_url(url: str) -> str:
     return ''
 
 
-def get_search(*, keyword: str, pn: int, domain: str = None) -> Iterator[Dict]:
+def get_search(*, keyword: str, pn: int, cookies: str, domain: str = None) -> Iterator[Dict]:
     keyword = 'site: {} {}'.format(domain, keyword) if domain else keyword
     params = (
         ('wd', keyword),
@@ -44,7 +44,7 @@ def get_search(*, keyword: str, pn: int, domain: str = None) -> Iterator[Dict]:
         ('rsv_pq', 'd09ea91a000533ad'),
         ('rsv_t', 'a741enhrt8jcViHd/8Q+gb0DnCzjIbctyKmpOkRk6BibYwnyQXvHFSqrZtTKeUHQlE4s'),
     )
-    response = requests.get('https://www.baidu.com/s', headers=headers, params=params, timeout=15)
+    response = requests.get('https://www.baidu.com/s', headers=headers, params=params)
     html = etree.HTML(response.text)
     items = html.xpath('//*/h3/a')
     for item in items:
@@ -58,11 +58,12 @@ def get_search(*, keyword: str, pn: int, domain: str = None) -> Iterator[Dict]:
         yield {'title': title, 'url': url}
 
 
-def get_all_search(*, keyword: str, domain: str = None, cookies: str) -> Iterator[Dict]:
+def get_all_search(*, keyword: str, cookies: str, domain: str = None) -> Iterator[Dict]:
     for pn in range(1, 76):
         for item in get_search(
             keyword=keyword,
             pn=pn,
+            cookies=compile,
             domain=domain
         ):
             yield item

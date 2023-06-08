@@ -17,11 +17,9 @@ from .common import (
 )
 from .config import EXIN_TOKEN
 
-# pylint: disable=line-too-long
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.182 Safari/537.36"
 }
-# pylint: enable=line-too-long
 
 session = requests.session()
 
@@ -128,10 +126,8 @@ def get_exin() -> str:
             resp_data['sign']
         )
     elif isinstance(resp_data['data'], str):
-        yjs_st = b64encode(
-            quote("_".join([resp_data['data'], resp_data['key_id'], resp_data['sign']])).encode()
-        ).decode()
-        return "; __yjs_st=2_{}".format(yjs_st)
+        __yjs_st = b64encode(quote("_".join([resp_data['data'], resp_data['key_id'], resp_data['sign']])).encode()).decode()
+        return "; __yjs_st=2_{}".format(__yjs_st)
     else:
         raise QdataError(ErrorCode.LOGIN_FAIL)
 
@@ -142,18 +138,18 @@ def get_cookie_by_qr_login() -> str:
     try:
         qrcode_link, sign, callback = get_qrcode_info()
         show_qrcode(qrcode_link)
-    except Exception as exc:
-        raise QdataError(ErrorCode.GET_QR_FAIL) from exc
+    except Exception:
+        raise QdataError(ErrorCode.GET_QR_FAIL)
 
     try:
         bduss = get_bduss(sign, callback)
         cookies = get_login_cookie(bduss)
-    except Exception as exc:
-        raise QdataError(ErrorCode.LOGIN_FAIL) from exc
+    except Exception:
+        raise QdataError(ErrorCode.LOGIN_FAIL)
 
     try:
         cookies = cookies + get_exin()
-    except Exception as exc:
-        raise QdataError(ErrorCode.INDEX_LOGIN_FAIL) from exc
+    except Exception:
+        raise QdataError(ErrorCode.INDEX_LOGIN_FAIL)
 
     return cookies
