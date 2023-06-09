@@ -14,8 +14,9 @@ import time
 import pandas as pd
 from qdata.baidu_index import get_search_index
 from qdata.baidu_index.common import check_keywords_exists, split_keywords
+from qdata.baidu_index.config import PROVINCE_CODE, CITY_CODE
 
-cookies = """xxx"""
+cookies = """BAIDUID=AF295C0CCE1E89C6B137658BBC9550C5:FG=1; BAIDUID_BFESS=AF295C0CCE1E89C6B137658BBC9550C5:FG=1; BDUSS=Hh2NHd1VS1SUTlndWRnamFyZ2lqbXFLV1hXWS1zR2plTWNONjRYYn5WbG9iS2xrRVFBQUFBJCQAAAAAAAAAAAEAAAD4SVUOst3E4PJ5AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGjfgWRo34FkM; BDUSS_BFESS=Hh2NHd1VS1SUTlndWRnamFyZ2lqbXFLV1hXWS1zR2plTWNONjRYYn5WbG9iS2xrRVFBQUFBJCQAAAAAAAAAAAEAAAD4SVUOst3E4PJ5AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGjfgWRo34FkM; BIDUPSID=AF295C0CCE1E89C6B137658BBC9550C5; PSTM=1686232964; bdindexid=9qqq2o44smsjjm74a21b7s1jb4; PTOKEN=8bd32069f82466ab7d9071edacc610b4; PTOKEN_BFESS=8bd32069f82466ab7d9071edacc610b4; STOKEN=565c8f1936af297a4369443fd0846a9642f31b5c857f8868a0425e493080e6c4; STOKEN_BFESS=565c8f1936af297a4369443fd0846a9642f31b5c857f8868a0425e493080e6c4; UBI=fi_PncwhpxZ%7ETaJcxa1KX0RhvsNhdNaMz5W; UBI_BFESS=fi_PncwhpxZ%7ETaJcxa1KX0RhvsNhdNaMz5W; __yjs_st=2_ZDk4ZDRjZDU1YjE4YWE1MjVkYTE1NTJhNmU2NGNmOTlmMmJjNzNjMzRkZTA3OTc2ZDYzYTY4MGU5OTM1YzU0MGRkYTdiNGNmNmJkNTIyM2RhN2I4YzBlMzg1ZTNkYTRjODJmYWY0NGIzZjM3ZjEzZmI2MDYwOWQxMmNjNDAyNjhiNDU2OGRiZWZiNmEwNzg2NjM0MWJkNzdiYTM0ZjU2MDRlYjBmNDM5NDlmYTUyZDI5MTUyMjUxYjg5NGYyMGQwXzdfMmI3MGU4YjE="""
 
 
 def get_clear_keywords_list(keywords_list: List[List[str]]) -> List[List[str]]:
@@ -56,8 +57,58 @@ def get_clear_keywords_list(keywords_list: List[List[str]]) -> List[List[str]]:
 def save_to_excel(datas: List[Dict]):
     pd.DataFrame(datas).to_excel("index.xlsx")
 
+def save_to_csv(datas: List[Dict]):
+    pd.DataFrame(datas).to_csv("index.csv")
 
-def get_search_index_demo(keywords_list: List[List[str]]):
+def get_search_index_demo(keywords_list: List[List[str]], city_codes: Dict[str, int]):
+    """
+        1. First clean keywords data, pull out the keywords that are not included
+        2. Then split_keywords normal request for keywords
+        3. Store the data in excel
+    """
+    print("Starting keyword cleaning")
+    requested_keywords = []
+    keywords_list = get_clear_keywords_list(keywords_list)
+    q = Queue(-1)
+
+    for splited_keywords_list in split_keywords(keywords_list):
+        q.put(splited_keywords_list)
+
+    for city_name, city_code in city_codes.items():
+        print(f"Starting Baidu Index request for city: {city_name}")
+        datas = []
+        while not q.empty():
+            cur_keywords_list = q.get()
+            try:
+                print(f"Start request: {cur_keywords_list}")
+                for index in get_search_index(
+                    keywords_list=cur_keywords_list,
+                    # set start_date and end_date
+                    start_date='2018-06-01',
+                    end_date='2023-06-01',
+                    cookies=cookies,
+                    # set the area to the city code
+                    area=city_code
+                ):
+                    index["keyword"] = ",".join(index["keyword"])
+                    index["city_code"] = city_code  # store city code
+                    index["city_name"] = city_name  # store city name
+                    datas.append(index)
+                requested_keywords.extend(cur_keywords_list)
+                print(f"Request completed: {cur_keywords_list}")
+                time.sleep(10)
+            except:
+                traceback.print_exc()
+                print(f"Request error, requested_keywords: {requested_keywords}")
+                save_to_excel(datas)
+                q.put(cur_keywords_list)
+                time.sleep(180)
+
+        save_to_csv(datas)
+
+
+
+def get_search_index_demo_bak(keywords_list: List[List[str]]):
     """
         1. 先清洗keywords数据，把没有收录的关键词拎出来
         2. 然后split_keywords关键词正常请求
@@ -79,8 +130,9 @@ def get_search_index_demo(keywords_list: List[List[str]]):
             print(f"开始请求: {cur_keywords_list}")
             for index in get_search_index(
                 keywords_list=cur_keywords_list,
-                start_date='2019-01-01',
-                end_date='2021-05-01',
+                # set start_date and end_date
+                start_date='2018-06-01',
+                end_date='2023-06-01',
                 cookies=cookies
             ):
                 index["keyword"] = ",".join(index["keyword"])
@@ -98,9 +150,18 @@ def get_search_index_demo(keywords_list: List[List[str]]):
     save_to_excel(datas)
 
 
+# if __name__ == "__main__":
+#     # set keywords_list
+#     keywords_list = [
+#         ["的角度讲"], ["男方女方发广告"], ["张艺兴", "极限挑战"], ["你是大哥你牛"], ["英雄联盟"],
+#         ["永劫无间"], ["网易"], ["任正非"], ["企鹅"], ["北极熊"], ["疫情"], ["古装剧"]
+#     ]
+#     get_search_index_demo(keywords_list)
+
 if __name__ == "__main__":
+    # set keywords_list
     keywords_list = [
-        ["的角度讲"], ["男方女方发广告"], ["张艺兴", "极限挑战"], ["你是大哥你牛"], ["英雄联盟"],
-        ["永劫无间"], ["网易"], ["任正非"], ["企鹅"], ["北极熊"], ["疫情"], ["古装剧"]
+        ['幽门螺杆菌'], ['黑便'], ['胃镜'], ['消化道出血']
     ]
-    get_search_index_demo(keywords_list)
+    # CITY_CODE is a dictionary of city names and their corresponding codes
+    get_search_index_demo(keywords_list, CITY_CODE)

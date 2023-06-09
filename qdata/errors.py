@@ -19,7 +19,6 @@ class ErrorCode(int, Enum):
     # 天眼查
     TYC_COMPANY_COUNT_FAIL = 20020
 
-
 CODE_MSG_MAP = {
     ErrorCode.NO_LOGIN: 'cookies失效，请重新获取cookies',
     ErrorCode.UNKNOWN: '未知错误',
