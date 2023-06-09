@@ -107,57 +107,6 @@ def get_search_index_demo(keywords_list: List[List[str]], city_codes: Dict[str, 
         save_to_csv(datas)
 
 
-
-def get_search_index_demo_bak(keywords_list: List[List[str]]):
-    """
-        1. 先清洗keywords数据，把没有收录的关键词拎出来
-        2. 然后split_keywords关键词正常请求
-        3. 数据存入excel
-    """
-    print("开始清洗关键词")
-    requested_keywords = []
-    keywords_list = get_clear_keywords_list(keywords_list)
-    q = Queue(-1)
-
-    for splited_keywords_list in split_keywords(keywords_list):
-        q.put(splited_keywords_list)
-    
-    print("开始请求百度指数")
-    datas = []
-    while not q.empty():
-        cur_keywords_list = q.get()
-        try:
-            print(f"开始请求: {cur_keywords_list}")
-            for index in get_search_index(
-                keywords_list=cur_keywords_list,
-                # set start_date and end_date
-                start_date='2018-06-01',
-                end_date='2023-06-01',
-                cookies=cookies
-            ):
-                index["keyword"] = ",".join(index["keyword"])
-                datas.append(index)
-            requested_keywords.extend(cur_keywords_list)
-            print(f"请求完成: {cur_keywords_list}")
-            time.sleep(10)
-        except:
-            traceback.print_exc()
-            print(f"请求出错, requested_keywords: {requested_keywords}")
-            save_to_excel(datas)
-            q.put(cur_keywords_list)
-            time.sleep(180)
-
-    save_to_excel(datas)
-
-
-# if __name__ == "__main__":
-#     # set keywords_list
-#     keywords_list = [
-#         ["的角度讲"], ["男方女方发广告"], ["张艺兴", "极限挑战"], ["你是大哥你牛"], ["英雄联盟"],
-#         ["永劫无间"], ["网易"], ["任正非"], ["企鹅"], ["北极熊"], ["疫情"], ["古装剧"]
-#     ]
-#     get_search_index_demo(keywords_list)
-
 if __name__ == "__main__":
     # set keywords_list
     keywords_list = [
